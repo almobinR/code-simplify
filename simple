@@ -1,0 +1,542 @@
+select 
+		dt2.current_year as Reporting_Year,
+		dt2.current_year,
+		dt2.CLASSENROLMENTID,
+		dt2.studentcourseenrolment_fk,
+		dt2.studentid_fk,
+		dt2.course_fk,
+		dt2.unit_fk,
+		dt2.classid_fk,
+		dt2.fund_fk,
+		dt2.deliverystrategy_fk,
+		dt2.resultcode_fk,
+		dt2.enrolleddatetime,
+		dt2.startdate,
+		dt2.academicyear,
+		dt2.enddate,
+		dt2.endyear,
+		dt2.paymentitemid,
+		dt2.concessiontypeid,
+		dt2.STUDENTCOURSECOMM_FK,
+		dt2.attendeddeliverystartdate,
+		dt2.censusperiodstartdate,
+		dt2.censusperiodenddate,
+		dt2.campus_fk,
+		dt2.profilecode_fk,
+		dt2.deliverydept_fk,
+		dt2.departmenthier_fk,
+		dt2.projhier_fk,
+		dt2.hourlytuitionratecharged,
+		dt2.classhoursquantity,
+		dt2.attendedhoursoverride,
+		dt2.attendedhoursresolved,
+		dt2.EFTSL,
+		dt2.year_eftsl,
+		dt2.censusdate,
+		dt2.enrolment_year_half,
+		dt2.owning_dept_fk,
+		dt2.Owning_Dept_Hier_FK,
+		dt2.concession_type_fk,
+		dt2.paymentitem_fk,
+		dt2.studentrepunitenrol_fk,
+
+		case when isecnwignored = 'ECNW Ignored' then current_year_hours
+			else 0 end as Ignored_Hours, 
+		 
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			when isecnwignored = 'ECNW Ignored' then 0 
+			else current_year_hours end as GrossEnrolledHours, 
+
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0 
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then current_year_hours 
+			 else 0 end as WithdrawnNeverAttendedHours, 
+
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0 
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 0 
+			 else current_year_hours end as EnrolledHours, 
+		 
+		case when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then  AttendedHoursResolved - Prior_Year_Hours          
+			else 0 end as WithdrawnAttendedHours, 
+
+		case when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then  Classhoursquantity - AttendedHoursResolved
+			else 0 end as InsufficientParticipationHours, 
+		 
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 0 
+			 when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then AttendedHoursResolved - Prior_Year_Hours     
+			 else current_year_hours end as NettEnrolledHours, 
+		 
+		case when attendeddeliverystartdate = convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' then current_year_hours
+			 else 0 end as NotYetCommencedHours, 
+		 
+		case when SUMMARY_ENROLMENT_CODE = 'P' then current_year_hours
+			 else 0 end as Pre_Enrolled_Hours,
+
+		case when attendeddeliverystartdate =  convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' then 0
+			 when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 0 
+			 when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then AttendedHoursResolved - Prior_Year_Hours     
+			 else current_year_hours end as Commenced_Hours,
+
+		case when attendeddeliverystartdate =  convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' and effectivestartdate<= date_key_criteria then current_year_hours
+			 else 0 end as missingattendanceHours,
+
+		case when attendeddeliverystartdate =  convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' and effectivestartdate> date_key_criteria then current_year_hours
+			 else 0 end as FutureattendanceHours,
+
+		case when attendeddeliverystartdate > convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' and UNIT_SIGNOFF_STATUS not in ( 'WAIT', 'WAITW') then current_year_hours
+			 else 0 end as CommencedButNotCompletedHours, 
+
+		case when attendeddeliverystartdate > convert(date, '1 Jan 1901') and SUMMARY_ENROLMENT_CODE = 'E' and UNIT_SIGNOFF_STATUS in ( 'WAIT', 'WAITW') then current_year_hours
+			 else 0 end as AwaitingSignoffHours,
+
+			 
+		case when SUMMARY_ENROLMENT_CODE = 'E' then current_year_hours
+			 else 0 end as InProgressHours,
+
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0 
+			 when  isecnwcompleted = 'ECNW Completed' then current_year_hours
+			  when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then attendedhoursresolved - prior_year_hours
+			 else 0 end as ResultedHours, 
+
+
+
+		isnull(SVTS_PaidAmount, 0) as SVTS_Paid_Amount,
+		isnull(SVTS_PaidHours, 0) as SVTS_Paid_Hours,
+		dt2.prior_year_hours,
+		dt2.CurrentYearContributor,
+		dt2.Date_Key_Criteria,
+		dt2.Progression_status,
+		isnull(consolidatedstatus,'Unknown') as consolidatedstatus,
+		isnull(SVTS_Reject_Amount, 0) as SVTS_Reject_Amount,
+		isnull(SVTS_Reject_Hours, 0) as SVTS_Reject_Hours,
+		dt2.effectiveenddate,
+		dt2.WNA_YEAR,
+		dt2.detailed_result_code,
+		dt2.fund_code,
+		dt2.current_year_hours,
+		dt2.isecnwcompleted,
+		isecnwignored,
+		dt2.studentgroup_fk,
+		dt2.intake_indicator,
+		dt2.enrolment_type,
+		dt2.UNIT_SIGNOFF_STATUS ,
+		Unadjusted_CY_CLAIMABLE_SVTS_HOURS,
+		 PY_CLAIMED_SVTS_HOURS,
+		PY_CLAIMABLE_SVTS_HOURS,
+		dt2.COL_STUDY_PERIOD,
+
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 0 
+			 when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then AttendedHoursResolved - PY_CLAIMED_SVTS_HOURS    
+			 else Unadjusted_CY_CLAIMABLE_SVTS_HOURS+PY_CLAIMABLE_SVTS_HOURS-PY_CLAIMED_SVTS_HOURS end as CY_CLAIMABLE_SVTS_HOURS,
+
+		case when SUMMARY_ENROLMENT_CODE = 'P' then 0 
+			 when isecnwignored = 'ECNW Ignored' then 0
+			 when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 0 
+			 when ecnwwithdrawnattend = 'ECNW Withdrawn AttendeD' and datepart(yyyy, effectiveenddate) = current_year then AttendedHoursResolved - PY_CLAIMED_SVTS_HOURS    
+			 else Unadjusted_YTD_CLAIMABLE_SVTS_HOURS+PY_CLAIMABLE_SVTS_HOURS-PY_CLAIMED_SVTS_HOURS end as YTD_CLAIMABLE_SVTS_HOURS,
+
+
+		CY_ADJUSTMENT,
+
+
+		Case when Progression_status in  ('Missing Result','Awaiting Employer Signoff') and avetmiss_reported = 'Reported' and SUMMARY_ENROLMENT_CODE <> 'P' and isecnwignored <> 'ECNW Ignored' and current_year_hours <> 0 and datediff(dd, reported_end_date, Date_Key_Criteria) >0  then
+											case when datediff(dd, reported_end_date, Date_Key_Criteria) <= 7 then '1. Nearing 7 Days overdue'
+											 when datediff(dd, reported_end_date, Date_Key_Criteria) < 30 then '2. Nearing 30 Days overdue'
+											 when datediff(dd, reported_end_date, Date_Key_Criteria) < 60 then '3. Nearing 60 Days overdue'
+											 when datediff(dd, reported_end_date, Date_Key_Criteria) < 90 then '4. Nearing 90 Days overdue'
+											 when datediff(dd, reported_end_date, Date_Key_Criteria) >= 90 then '5. Reject 27 (90+ Days Overdue)' 
+											 else 'Not Overdue' end
+									else 'Not Overdue' end as Overdue_Result_Classification
+
+		,effectivestartDate
+
+from( Select 
+ 
+
+																					  
+																																																				
+																																																																				
+																																									  
+																																														   
+																																		   
+			case when enddate >=Curr_Year_start and effectivestartdate <= curr_year_end then 'Current Year Contributor'	
+			else 'Not a Current Year Contributor' end as CurrentYearContributor, 																																				 
+
+			case 
+			when effectivestartdate > Curr_Year_End or effectiveenddate < Curr_Year_Start then 0
+			when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then case when datepart(yyyy, effectiveenddate) = current_year then classhoursquantity 
+										else 0 end
+			when isecnwcompleted = 'ECNW Completed' or ECNWwithdrawnattend = 'ECNW Withdrawn AttendeD' then classhoursquantity -  (case when effectivestartdate < Curr_Year_Start and effectiveenddate >= Curr_Year_Start then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, effectivestartdate, dt1.enrolmentenddate)+1)  * DATEDIFF(dd, effectivestartdate, dt1.curr_year_start ),0) 
+																																		when effectivestartdate < curr_Year_start and effectiveenddate < curr_year_start then classhoursquantity 
+																																		else 0 end ) 
+			else round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, effectivestartdate, dt1.effectiveenddate)+1)  * (DATEDIFF(dd, case when effectivestartdate < Curr_Year_Start then Curr_Year_Start 
+																																	else effectivestartdate end, 
+																																case when effectiveenddate> dt1.Curr_Year_End then  dt1.curr_year_end 
+																																	else effectiveenddate end )
+																															+1),0)   
+						end -
+		case when isnull(SVTS_CLAIM.PY_START_DATE,'1 Jan 1900') = '1 Jan 1900' then 0 
+                   else((
+			case when isnull(SVTS_CLAIM.PY_START_DATE,'1 Jan 1900') = '1 Jan 1900' then 0
+			when svts_claim.PY_START_DATE < Curr_Year_Start and SVTS_CLAIM.PY_END_DATE >= Curr_Year_Start 		
+				then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, svts_claim.PY_START_DATE, SVTS_CLAIM.PY_END_DATE)+1)  * DATEDIFF(dd, svts_claim.PY_START_DATE, dt1.curr_year_start ),0)			
+			when svts_claim.PY_START_DATE < curr_Year_start and SVTS_CLAIM.PY_END_DATE < curr_year_start then classhoursquantity
+            else 0 end
+		
+		)-(
+		
+		case when effectivestartdate < Curr_Year_Start and effectiveenddate>= Curr_Year_Start 		
+				then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, effectivestartdate, dt1.enrolmentenddate)+1)  * DATEDIFF(dd, effectivestartdate, dt1.curr_year_start ),0)			
+			when effectivestartdate < curr_Year_start and effectiveenddate < curr_year_start then classhoursquantity
+            else 0 end))
+              end as Current_Year_Hours,
+
+		case when effectivestartdate < Curr_Year_Start and effectiveenddate>= Curr_Year_Start then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, effectivestartdate, dt1.enrolmentenddate)+1)  * DATEDIFF(dd, effectivestartdate, dt1.curr_year_start ),0)
+			when effectivestartdate < curr_Year_start and effectiveenddate < curr_year_start then classhoursquantity
+            else 0 end as Prior_Year_Hours,
+		 
+		SVTS_CLAIM.PAYMENTAMT as SVTS_PaidAmount,
+		SVTS_CLAIM.CLAIMHOURS as SVTS_PaidHours,
+		SVTS_claim.consolidatedstatus,
+		case when SVTS_CLAIM.rejectstatus = 'Rejected' then SVTS_CLAIM.nominalhours * SVTS_CLAIM.coursesubsidyrate 
+			else 0 end as SVTS_Reject_Amount,
+		case when SVTS_CLAIM.rejectstatus = 'Rejected' then SVTS_CLAIM.nominalhours 
+			else 0 end as SVTS_Reject_Hours,
+
+		case when isnull(SVTS_CLAIM.PY_START_DATE,'1 Jan 1900') = '1 Jan 1900' then 0 
+                   else((
+			case when isnull(SVTS_CLAIM.PY_START_DATE,'1 Jan 1900') = '1 Jan 1900' then 0
+			when svts_claim.PY_START_DATE < Curr_Year_Start and SVTS_CLAIM.PY_END_DATE >= Curr_Year_Start 		
+				then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, svts_claim.PY_START_DATE, SVTS_CLAIM.PY_END_DATE)+1)  * DATEDIFF(dd, svts_claim.PY_START_DATE, dt1.curr_year_start ),0)			
+			when svts_claim.PY_START_DATE < curr_Year_start and SVTS_CLAIM.PY_END_DATE < curr_year_start 
+                         then classhoursquantity
+                     else 0 end
+		)-(
+		
+		case when effectivestartdate < Curr_Year_Start and effectiveenddate>= Curr_Year_Start 		
+				then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, effectivestartdate, dt1.enrolmentenddate)+1)  * DATEDIFF(dd, effectivestartdate, dt1.curr_year_start ),0)			
+			when effectivestartdate < curr_Year_start and effectiveenddate < curr_year_start then classhoursquantity
+            else 0 end )) end  as CY_ADJUSTMENT,					
+			
+			
+
+			
+			
+			
+			
+			
+classhoursquantity/(datediff(mm,effectivestartDate, Effectiveenddate)+1)*(datediff(mm, case when effectivestartdate > curr_year_start then effectivestartdate else curr_year_Start end, case when effectiveenddate > curr_year_end then Curr_year_end else effectiveenddate end)+1) as Unadjusted_CY_CLAIMABLE_SVTS_HOURS,		
+	
+			case when isnull(SVTS_CLAIM.PY_START_DATE,'1 Jan 1900') = '1 Jan 1900' then 0
+			     when svts_claim.PY_START_DATE < Curr_Year_Start and SVTS_CLAIM.PY_END_DATE >= Curr_Year_Start 		
+				then round((dt1.ClassHoursQuantity*1.0)/(DATEDIFF(dd, svts_claim.PY_START_DATE, SVTS_CLAIM.PY_END_DATE)+1)  * DATEDIFF(dd, svts_claim.PY_START_DATE, dt1.curr_year_start ),0)			
+			when svts_claim.PY_START_DATE < curr_Year_start and SVTS_CLAIM.PY_END_DATE < curr_year_start then classhoursquantity
+            else 0 end as PY_CLAIMED_SVTS_HOURS,
+
+(classhoursquantity / case when (datediff(mm,SVTS_CLAIM.PY_START_DATE, SVTS_CLAIM.PY_END_DATE)+1) = 0 then 1 else (datediff(mm,SVTS_CLAIM.PY_START_DATE, SVTS_CLAIM.PY_END_DATE)+1) end  )*
+
+	(datediff
+			(mm, 
+				case when svts_claim.PY_START_DATE < curr_year_start 
+					then svts_claim.PY_START_DATE 
+					else curr_year_Start 
+				end
+			, 
+				case when svts_claim.Py_End_date > curr_year_start 
+					then Curr_year_Start 
+					else svts_claim.py_End_Date 
+				end
+			)+1
+	)  as  PY_CLAIMABLE_SVTS_HOURS,
+
+classhoursquantity/(datediff(mm,effectivestartDate, Effectiveenddate)+1)*(datediff(mm, case when effectivestartdate > curr_year_start then effectivestartdate else curr_year_Start end, case when effectiveenddate > Date_Key_Criteria then Date_Key_Criteria else effectiveenddate end)) as Unadjusted_YTD_CLAIMABLE_SVTS_HOURS,
+
+
+		dt1.* 
+		 
+		from(  select 
+		
+				enrol.UNIT_FK, 	 
+				result.summary_enrolment_code, 
+				 case when isnull(repunit.reported_end_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.enddate 
+                          else repunit.reported_end_date 
+                     end  as enrolmentenddate,
+				result.resultdate, 
+				fund.code as fund_code,
+				enrol.SURROGATE_KEY,  
+				Result.SUMMARY_ENROLMENT_DESC, 		 
+				result.DETAILED_RESULT_CODE, 			 
+				enrol.EFTSL as EFTSL, 			 
+				case when datepart(yy, datei.current_year_start) = datepart(yy, enrol.CENSUSDATE) then case when result.detailed_result_Code in('CAN','CT','WBC','WBUC','WNA','WPCC','HRG') then 0 
+																											else  enrol.EFTSL end 
+					else 0 end as Year_EFTSL, 
+				 
+				enrol.id as CLASSENROLMENTID,			 
+				case when enrol.ATTENDEDDELIVERYSTARTDATE > asatDatei.surrogate_KEY then '1 Jan 1901' else enrol.ATTENDEDDELIVERYSTARTDATE end as ATTENDEDDELIVERYSTARTDATE  , 				 
+				enrol.CLASSHOURSQUANTITY , 				 
+				enrol.ATTENDEDHOURSRESOLVED, 				 
+				enrol.STUDENTCOURSEENROLMENT_FK , 				 
+				enrol.STUDENTID_FK , 				 
+				enrol.COURSE_FK , 				 
+				enrol.CLASSID_FK , 			 
+				enrol.FUND_FK , 			 
+				enrol.DELIVERYSTRATEGY_FK , 			 
+				enrol.RESULTCODE_FK , 			 
+				enrol.ENROLLEDDATETIME , 			 
+				enrol.ACADEMICYEAR , 			 
+				enrol.ENDYEAR , 			 
+				enrol.PAYMENTITEMID , 			 
+				enrol.CONCESSIONTYPEID , 			
+				comm.surrogate_key as STUDENTCOURSECOMM_FK ,
+				enrol.CENSUSPERIODSTARTDATE , 			 
+				enrol.CENSUSPERIODENDDATE , 			 
+				enrol.CAMPUS_FK , 			 
+				enrol.PROFILECODE_FK , 			 
+				enrol.DELIVERYDEPT_FK , 			 
+				enrol.DEPARTMENTHIER_FK , 			 
+				enrol.PROJHIER_FK , 			 		 
+				enrol.HOURLYTUITIONRATECHARGED , 				 
+				enrol.ATTENDEDHOURSOVERRIDE , 				 
+				enrol.DATE_EFFECTIVE_FROM , 				 
+				enrol.DATE_EFFECTIVE_TILL , 				 
+				enrol.CURRENT_VERSION_FLAG, 
+				enrol.PAYMENTITEM_FK,				 
+				enrol.owning_dept_FK , 
+				enrol.CONCESSION_TYPE_FK,
+				enrol.owning_dept_hier_fk, 				 
+				asatDatei.surrogate_KEY as Date_Key_Criteria, 
+				datei.YEAR_LONG as REPORTING_Year,
+				datei.Current_Year_Start as Curr_Year_Start, 				 
+				DATEI.Current_Year_End as Curr_Year_End, 				  
+				enrol.censusdate, 
+				enrol.startdate,
+			       case when DEPARTMENTHIER_FK = 18 then isnull(COL_PERIOD.FDESCR,'Unknown') else 'Unknown' end as COL_STUDY_PERIOD,
+
+                           case when isnull(repunit.reported_start_date, '1 Jan 1901') = '1 Jan 1901' then enrol.startdate else repunit.reported_start_date end as effectivestartdate, 
+
+
+				 
+				datei.YEAR_LONG  as current_year, 			 			 
+				comm.commencementdate, 
+				comm.TRANS_FROM_COMM_DATE,
+				Coursedet.recognitioncode, 
+				 repunit.avetmiss_reported ,
+				Case when case when year(comm.TRANS_FROM_COMM_DATE) > '1901' then year(comm.TRANS_FROM_COMM_DATE) 
+								else year(comm.commencementdate)end < cast(datei.YEAR_LONG as int) then 'Continuing' 		
+					else 'New' end as ENROLMENT_TYPE, 
+				 
+				case when case when year(comm.TRANS_FROM_COMM_DATE) > '1901' then comm.TRANS_FROM_COMM_DATE 
+								else comm.commencementdate end <= asatdatei.surrogate_key then 'YTD Actual' 
+					else 'Future Intake' End as Intake_Indicator,
+
+				case when datepart(yy, courseenrol.enrolleddate) = datei.year_long then
+							case when datepart(mm, courseenrol.enrolleddate)>5 then 'Mid Year Enrolment' 
+								else 'Not Mid Year Enrolment' end
+					else 'Not Mid Year Enrolment' end as ENROLMENT_YEAR_HALF,
+
+				enrol.enddate as enddate, 
+				 
+
+				 
+case when Result.resultdate = convert(date, '1 Jan 1901') then 
+              case when 
+                    case when isnull(repunit.reported_end_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.enddate 
+                          else repunit.reported_end_date 
+                     end 
+                    <= case when isnull(repunit.reported_start_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.startdate 
+                          else repunit.reported_start_date 
+                        end  
+              then case when isnull(repunit.reported_start_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.startdate 
+                          else repunit.reported_start_date 
+                        end  
+              else case when isnull(repunit.reported_end_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.enddate 
+                          else repunit.reported_end_date 
+                     end 
+              end
+					
+
+when result.resultdate < case when isnull(repunit.reported_start_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.startdate 
+                          else repunit.reported_start_date 
+                        end
+ then case when isnull(repunit.reported_start_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.startdate 
+                          else repunit.reported_start_date 
+                        end
+					
+
+else result.resultdate end as EffectiveEndDate,
+                         
+				case when Coursedet.RECOGNITIONCODE in ('11','12') then 'VET' 
+					when Coursedet.isished = 'Higher Education' then 'Higher Education' 
+					else 'Other' end as enrolment_reporting_type,
+
+				case when conc.nat120_waiver_code = 'T'  then 'Fee Free' 
+					else 'Not Fee Free' end as Fee_Free,
+
+				isnull(repunit.surrogate_key,-1) as studentrepunitenrol_fk,
+				repunit.id as studentrepunitenrolmentid,
+				repunit.reported_start_date,
+				repunit.reported_end_date,
+				repunit.reported_outcome_code,
+
+				case when datepart(yyyy, enrol.startdate) > datepart(yyyy,result.resultdate) then datepart(yyyy, enrol.startdate) 
+					else datepart(yyyy, result.resultdate) end as WNA_YEAR,
+
+				isecnwcompleted,
+				ecnwwithdrawnattend,
+				ecnwwithdrawnnotattend,
+				isecnwignored,
+				case   when SUMMARY_ENROLMENT_CODE = 'P' then 'Pre-Enrolled'
+                                  when isecnwignored = 'ECNW Ignored' then 'Ignored Attendance'
+                                  when ecnwwithdrawnnotattend = 'ECNW Withdrawn Not Attended' then 'Withdrawn Never Attended Attendance'
+                                  when isnull(result.resultdate, '1 Jan 1901') > '1 Jan 1901' and isnull(result.result_entered_date,'1 Jan 1901') <= asatdatei.surrogate_key  then 'Attendance Completed'
+                                  when unit_signoff_status in ('WAIT', 'WAITW') then 'Awaiting Employer Signoff'
+                                  when case when attendeddeliverystartdate > asatdatei.surrogate_key  then '1 Jan 1901' else attendeddeliverystartdate end = '1 Jan 1901' and enrol.startdate < asatdatei.surrogate_key and fund.AVETMISSREPORTINGCOMMTYPE = 'From Start of Attended Delivery' then 'Missing Attendance'                                					
+					when case when attendeddeliverystartdate > asatdatei.surrogate_key  then '1 Jan 1901' else attendeddeliverystartdate end  > '1 Jan 1901' and isnull(result.resultdate, '1 Jan 1901') = '1 Jan 1901' and case when isnull(repunit.reported_end_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.enddate 
+                          else repunit.reported_end_date end >= asatdatei.surrogate_key then 'Attendance in Progress'
+					when case when attendeddeliverystartdate > asatdatei.surrogate_key  then '1 Jan 1901' else attendeddeliverystartdate end  > '1 Jan 1901' and isnull(result.resultdate, '1 Jan 1901') = '1 Jan 1901' and case when isnull(repunit.reported_end_date, '1 Jan 1901') = '1 Jan 1901' 
+                          then enrol.enddate 
+                          else repunit.reported_end_date end < asatdatei.surrogate_key then 'Missing Result'
+					when case when attendeddeliverystartdate > asatdatei.surrogate_key  then '1 Jan 1901' else attendeddeliverystartdate end  = '1 Jan 1901' and enrol.startdate >= asatdatei.surrogate_key then 'Future Attendance'
+					else 'Unknown Attendance' end as progression_status,
+
+
+
+				
+                           unit_signoff_status,
+                           isnull(studentgroup.surrogate_key,-1) as studentgroup_fk
+					  
+
+				from BIST_FACT_CLASS_ENROL enrol 
+
+				left outer join BIST_DIM_CLASS_RESULT Result 
+				on enrol.RESULTCODE_FK = Result.SURROGATE_KEY 
+
+				left outer join BIST_DIM_COURSE_ENROLMENT courseenrol 
+				on enrol.STUDENTCOURSEENROLMENT_FK = courseenrol.SURROGATE_KEY 
+
+				left outer join BIST_DIM_COURSE_COMMENCE comm_INT 
+				on enrol.STUDENTCOUSECOMM_FK = comm_int.SURROGATE_KEY
+
+ 				left outer join BIST_DIM_COURSE_COMMENCE comm 
+				on comm_int.id = comm.id
+                            and comm.current_version_flag = 'Y'
+
+				left outer join BIST_DIM_STUDENT Student 
+				on enrol.STUDENTID_FK = Student.SURROGATE_KEY 
+
+				left outer join BIST_DIM_COURSE Coursedet 
+				on enrol.course_fk = coursedet.surrogate_key 
+
+				left outer join BIST_DIM_FUND_CODE fund 
+				on enrol.fund_fk = fund.surrogate_key 
+
+				left outer join BIST_DIM_CONCESSION_CODE conc
+				on enrol.Concession_Type_FK = conc.SURROGATE_KEY
+
+
+                            left outer join GLF_SELN_CODE col_period
+                            on enrol.ENROLLEDDATETIME > col_period.user_datei1
+                            and enrol.ENROLLEDDATETIME <= col_period.user_Datei2
+                            and col_period.seln_type = 'COL_SP'
+                           
+
+
+
+				inner join BICH_DIM_DATE asatdatei 
+				on enrol.DATE_EFFECTIVE_FROM <= asatdatei.surrogate_KEY 
+				and enrol.DATE_EFFECTIVE_TILL > asatdatei.surrogate_KEY 
+
+				left outer join BIST_FACT_REP_UNIT_ENROL repunit_TEMP
+				on enrol.studentrepunitenrol_fk = repunit_temp.SURROGATE_KEY
+
+                           left outer join BIST_FACT_REP_UNIT_ENROL repunit
+                           on repunit_temp.id = repunit.id
+                           and repunit.date_effective_from <= asatdatei.surrogate_KEY 
+                           and repunit.date_effective_till > asatdatei.surrogate_KEY 
+
+
+
+				cross join (select year_long,
+							curr_year_start as current_year_start,
+							curr_year_end as current_year_end
+							from BICH_DIM_DATE DATEI 
+							group by year_long,
+							curr_year_start,
+							curr_year_end) DATEI
+
+				Left outer join (Select max(new.surrogate_key) as surrogate_key,
+							new.courseid,
+							new.studentid,
+							new.year
+
+						from (select max(attendancegroupcode) as maxattendancegroupcode,
+									courseid,
+									studentid,
+									year
+
+							  from BIST_DIM_STUDENT_GROUP
+
+							where current_version_flag = 'Y'
+					  
+							group by courseid,
+									studentid,
+									year
+
+					 
+							) dt1
+
+						inner join BIST_DIM_STUDENT_GROUP new
+						on dt1.maxattendancegroupcode = new.attendancegroupcode
+						and dt1.courseid = new.courseid
+						and dt1.studentid = new.studentid
+						and dt1.year = new.year
+						and new.current_version_flag = 'Y'
+
+
+						group by new.courseid,
+								new.studentid,
+								new.year
+				) StudentGroup
+				on studentgroup.studentid = student.uniqueid
+				and studentgroup.courseid = coursedet.courseid
+				and studentgroup.year = datei.year_long
+
+
+
+				where case when Result.resultdate = convert(date, '1 Jan 1901') then enrol.enddate 
+							else Result.resultdate end > DateAdd(yy, -2, datei.CURRent_YEAR_END) 
+				and enrol.startdate <= current_year_end
+                		and enrol.enddate >= current_year_start
+			) dt1 
+
+	
+
+		left outer join BIST_DIM_SVTS_CLAIM_SUMMARY SVTS_CLAIM
+		on dt1.studentrepunitenrolmentid = svts_claim.STUDENTREPUNITENROLMENTID
+		and svts_claim.PAYMENT_YEAR = current_year
+              and svts_claim.date_effective_from <= Date_Key_Criteria
+              and svts_claim.date_effective_till > Date_Key_Criteria
+
+
+
+		 
+	) dt2
+
+
+where currentyearcontributor =  'Current Year Contributor' 
